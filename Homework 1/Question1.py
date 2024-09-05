@@ -3,40 +3,62 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
 
-X_train_data = np.loadtxt('/content/Madelon/madelon_train.data')
-X_test_data = np.loadtxt('/content/Madelon/madelon_valid.data')
-Y_train_labels = np.loadtxt('/content/Madelon/madelon_train.labels')
-Y_test_labels = np.loadtxt('/content/Madelon/madelon_valid.labels')
+def load_data(train_data_path, test_data_path, train_labels_path, test_labels_path):
+    X_train = np.loadtxt(train_data_path)
+    X_test = np.loadtxt(test_data_path)
+    Y_train = np.loadtxt(train_labels_path)
+    Y_test = np.loadtxt(test_labels_path)
+    return X_train, X_test, Y_train, Y_test
 
-train_errors_list = []
-test_errors_list = []
+def calculate_errors(X_train, Y_train, X_test, Y_test, max_depth):
+    train_errors = []
+    test_errors = []
+    for d in range(1, max_depth + 1):
+        clf = DecisionTreeClassifier(max_depth=d, random_state=42)
+        clf.fit(X_train, Y_train)
+        
+        train_pred = clf.predict(X_train)
+        test_pred = clf.predict(X_test)
+        train_errors.append(1 - accuracy_score(Y_train, train_pred))
+        test_errors.append(1 - accuracy_score(Y_test, test_pred))
+    return train_errors, test_errors
 
-for depth in range(1, 13):
-    decision_tree = DecisionTreeClassifier(max_depth=depth, random_state=42)
-    decision_tree.fit(X_train_data, Y_train_labels)
-    
-    train_predictions = decision_tree.predict(X_train_data)
-    test_predictions = decision_tree.predict(X_test_data)
-    
-    train_errors_list.append(1 - accuracy_score(Y_train_labels, train_predictions))
-    test_errors_list.append(1 - accuracy_score(Y_test_labels, test_predictions))
+def find_optimal_depth(test_errors):
+    min_error = min(test_errors)
+    best_depth = test_errors.index(min_error) + 1
+    return best_depth, min_error
 
-min_test_error_value = min(test_errors_list)
-optimal_tree_depth = test_errors_list.index(min_test_error_value) + 1
+def plot_errors(train_errors, test_errors, max_depth):
+    plt.figure(figsize=(10, 6), dpi=300)
+    plt.plot(range(1, max_depth + 1), train_errors, label='Train Error', marker='o')
+    plt.plot(range(1, max_depth + 1), test_errors, label='Test Error', marker='o')
+    plt.xlabel('Tree Depth')
+    plt.ylabel('Misclassification Rate')
+    plt.title('Error Rates vs Tree Depth')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
-plt.figure(figsize=(10, 6), dpi=300)
-plt.plot(range(1, 13), train_errors_list, label='Training Error', marker='o')
-plt.plot(range(1, 13), test_errors_list, label='Test Error', marker='o')
-plt.xlabel('Depth of Tree')
-plt.ylabel('Misclassification Error')
-plt.title('Training and Test Errors vs Tree Depth')
-plt.legend()
-plt.grid(True)
-plt.show()
+def print_error_summary(train_errors, test_errors):
+    print(f"{'Depth':<6} {'Train Error':<15} {'Test Error':<15}")
+    for i in range(len(train_errors)):
+        print(f"{i + 1:<6} {train_errors[i]:<15.4f} {test_errors[i]:<15.4f}")
 
-print(f'Optimal Tree Depth: {optimal_tree_depth}')
-print(f'Minimum Test Error: {min_test_error_value:.4f}')
+train_data_path = '/content/Madelon/madelon_train.data'
+test_data_path = '/content/Madelon/madelon_valid.data'
+train_labels_path = '/content/Madelon/madelon_train.labels'
+test_labels_path = '/content/Madelon/madelon_valid.labels'
 
-print(f"{'Depth':<6} {'Training Error':<15} {'Test Error':<15}")
-for index in range(12):
-    print(f"{index + 1:<6} {train_errors_list[index]:<15.4f} {test_errors_list[index]:<15.4f}")
+max_depth = 12
+
+X_train, X_test, Y_train, Y_test = load_data(train_data_path, test_data_path, train_labels_path, test_labels_path)
+
+train_errors, test_errors = calculate_errors(X_train, Y_train, X_test, Y_test, max_depth)
+
+best_depth, min_test_error = find_optimal_depth(test_errors)
+
+plot_errors(train_errors, test_errors, max_depth)
+
+print(f'Optimal Tree Depth: {best_depth}')
+print(f'Minimum Test Error: {min_test_error:.4f}')
+print_error_summary(train_errors, test_errors)
