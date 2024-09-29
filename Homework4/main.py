@@ -80,10 +80,10 @@ num_iter = 200
 lambdas: list[float] = []
 match DATASET:
     case 'Gisette':
-        lambdas = [0.010, 0.009, 0.005, 0.0031, 0.0022]  
+        lambdas = [0.011, 0.009, 0.005, 0.0027, 0.0022]  
 
     case 'dexter':
-        lambdas = [0.007, 0.00505, 0.003, 0.0025, 0.0017]  
+        lambdas = [0.007, 0.0045, 0.0025, 0.00299, 0.0021]  
 
     case 'Madelon':
         lambdas = [0.0020, 0.001, 0.0007, 0.0003, 0.000001] 
