@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
 
-# Load Gisette dataset
 def load_data(train_data_path, train_labels_path, valid_data_path, valid_labels_path):
     X_train = np.loadtxt(train_data_path)
     y_train = np.loadtxt(train_labels_path)
@@ -10,18 +9,15 @@ def load_data(train_data_path, train_labels_path, valid_data_path, valid_labels_
     y_test = np.loadtxt(valid_labels_path)
     return X_train, y_train, X_test, y_test
 
-# Convert {0, 1} labels to {-1, 1}
 def convert_labels(y):
     return 2 * y - 1
 
-# Bin each feature into 10 bins (piecewise constant regressors)
 def create_bins(X, num_bins=10):
     bins = np.zeros_like(X)
     for i in range(X.shape[1]):
         bins[:, i] = np.digitize(X[:, i], np.histogram(X[:, i], bins=num_bins)[1][:-1])
     return bins
 
-# Piecewise constant weak learner
 def weak_learner(X, y, weights, num_bins=10):
     best_feature = None
     best_bin = None
@@ -45,13 +41,11 @@ def weak_learner(X, y, weights, num_bins=10):
 
     return best_feature, best_bin
 
-# LogitBoost algorithm
 def logitboost(X_train, y_train, X_test, y_test, k_values, num_bins=10):
     n_train, n_features = X_train.shape
     y_train_ = convert_labels(y_train)
     y_test_ = convert_labels(y_test)
-    
-    # Initialize residuals and predictions
+
     f_train = np.zeros(n_train)
     f_test = np.zeros(X_test.shape[0])
     
@@ -63,13 +57,11 @@ def logitboost(X_train, y_train, X_test, y_test, k_values, num_bins=10):
     for k in k_values:
         losses = []
         for iteration in range(k):
-            # Compute weights
+        
             weights = np.exp(-y_train_ * f_train) / (1 + np.exp(-y_train_ * f_train))
             
-            # Select the best weak learner
             best_feature, best_bin = weak_learner(X_train, y_train_, weights, num_bins)
-            
-            # Update model predictions for the best weak learner
+
             bins = np.digitize(X_train[:, best_feature], np.histogram(X_train[:, best_feature], bins=num_bins)[1][:-1])
             h_train = np.ones(n_train)
             h_train[bins != best_bin] = -1
@@ -78,17 +70,14 @@ def logitboost(X_train, y_train, X_test, y_test, k_values, num_bins=10):
             h_test = np.ones(X_test.shape[0])
             h_test[bins_test != best_bin] = -1
             
-            # Update the boosted model
             f_train += h_train
             f_test += h_test
             
-            # Compute the losses
             loss = np.sum(np.log(1 + np.exp(-y_train_ * f_train)))
             losses.append(loss)
         
         train_losses.append(losses)
         
-        # Misclassification error
         train_error = np.mean(np.sign(f_train) != y_train_)
         test_error = np.mean(np.sign(f_test) != y_test_)
         
@@ -99,7 +88,6 @@ def logitboost(X_train, y_train, X_test, y_test, k_values, num_bins=10):
         
     return train_losses, train_errors, test_errors, f_test
 
-# Plotting the losses
 def plot_train_loss_vs_iteration(train_losses):
     plt.plot(train_losses[-1], label='Training Loss')
     plt.xlabel('Boosting Iterations')
@@ -108,7 +96,6 @@ def plot_train_loss_vs_iteration(train_losses):
     plt.title('Training Loss vs Iteration Number for k=500')
     plt.show()
 
-# Plotting misclassification errors vs k
 def plot_misclassification_errors(k_values, train_errors, test_errors):
     plt.plot(k_values, train_errors, label='Training Error')
     plt.plot(k_values, test_errors, label='Test Error')
@@ -118,7 +105,6 @@ def plot_misclassification_errors(k_values, train_errors, test_errors):
     plt.title('Misclassification Error vs Boosting Iterations')
     plt.show()
 
-# Plotting ROC curve
 def plot_roc_curve(y_test, f_test):
     fpr, tpr, _ = roc_curve(y_test, f_test)
     roc_auc = auc(fpr, tpr)
@@ -130,33 +116,25 @@ def plot_roc_curve(y_test, f_test):
     plt.legend()
     plt.show()
 
-# Main function
 if __name__ == "__main__":
-    # File paths
+    
     train_data_path = '/content/gisette/gisette_train.data'
     train_labels_path = '/content/gisette/gisette_train.labels'
     valid_data_path = '/content/gisette/gisette_valid.data'
     valid_labels_path = '/content/gisette/gisette_valid.labels'
     
-    # Load data
     X_train, y_train, X_test, y_test = load_data(train_data_path, train_labels_path, valid_data_path, valid_labels_path)
     
-    # Binning the features
     num_bins = 10
     X_train_binned = create_bins(X_train, num_bins)
     X_test_binned = create_bins(X_test, num_bins)
     
-    # Boosting iterations
     k_values = [10, 30, 100, 300, 500]
     
-    # Train the LogitBoost model
     train_losses, train_errors, test_errors, f_test = logitboost(X_train_binned, y_train, X_test_binned, y_test, k_values, num_bins)
     
-    # Plot training loss vs iteration for k=500
     plot_train_loss_vs_iteration(train_losses)
     
-    # Plot misclassification errors on train and test sets vs k
     plot_misclassification_errors(k_values, train_errors, test_errors)
     
-    # Plot ROC curve for k=300
     plot_roc_curve(y_test, f_test)
